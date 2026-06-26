@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { products } from './data/products';
 import './styles/globals.css';
 
 function App() {
-  // All existing state remains...
+  // ====== EXISTING STATE ======
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -34,16 +34,27 @@ function App() {
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackedOrder, setTrackedOrder] = useState(null);
-
-  // ====== NEW: Quick View Modal State ======
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showQuickView, setShowQuickView] = useState(false);
-
-  // ====== NEW: Clear Cart Transition State ======
   const [isClearingCart, setIsClearingCart] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // All your existing useEffect hooks...
+  // ====== NEW: Reviews State ======
+  const [reviews, setReviews] = useState(() => {
+    const saved = localStorage.getItem('reviews');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // ====== NEW: Order History View ======
+  const [showOrderHistory, setShowOrderHistory] = useState(false);
+
+  // ====== NEW: Active Section for Navbar ======
+  const [activeSection, setActiveSection] = useState('home');
+
+  // ====== NEW: Particle Animation ======
+  const canvasRef = useRef(null);
+
+  // ====== EFFECTS ======
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -58,13 +69,122 @@ function App() {
   }, [orders]);
 
   useEffect(() => {
+    localStorage.setItem('reviews', JSON.stringify(reviews));
+  }, [reviews]);
+
+  useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
     }
   }, [toast]);
 
-  // Filter and search products
+  // ====== NEW: Scroll Spy for Navbar ======
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = ['home', 'products', 'reviews', 'orders', 'contact', 'about'];
+      const scrollPosition = window.scrollY + 120;
+
+      for (const section of sections) {
+        const element = document.getElementById(section);
+        if (element) {
+          const { offsetTop, offsetHeight } = element;
+          if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+            setActiveSection(section);
+            break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // ====== NEW: Particle Animation ======
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let animationId;
+    let particles = [];
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    const createParticles = () => {
+      const count = 50;
+      particles = [];
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          radius: Math.random() * 3 + 1,
+          speedX: (Math.random() - 0.5) * 0.3,
+          speedY: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.5 + 0.1
+        });
+      }
+    };
+
+    const drawParticles = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      particles.forEach((p, i) => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+        
+        if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.radius * 3);
+        gradient.addColorStop(0, `rgba(108, 92, 231, ${p.opacity})`);
+        gradient.addColorStop(1, `rgba(108, 92, 231, 0)`);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Draw lines between nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = p.x - particles[j].x;
+          const dy = p.y - particles[j].y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance < 150) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(108, 92, 231, ${0.05 * (1 - distance / 150)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      });
+
+      animationId = requestAnimationFrame(drawParticles);
+    };
+
+    resizeCanvas();
+    createParticles();
+    drawParticles();
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      createParticles();
+    });
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      window.removeEventListener('resize', resizeCanvas);
+    };
+  }, []);
+
+  // ====== EXISTING FUNCTIONS ======
   const filteredProducts = useMemo(() => {
     let result = filter === 'all' 
       ? products 
@@ -95,7 +215,6 @@ function App() {
     return result;
   };
 
-  // Cart functions
   const addToCart = (product) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -135,28 +254,18 @@ function App() {
     return total + (price * item.quantity);
   }, 0);
 
-  // ====== NEW: Clear Cart with Transition ======
-  const handleClearCart = () => {
-    setShowClearConfirm(true);
-  };
-
+  const handleClearCart = () => setShowClearConfirm(true);
   const confirmClearCart = () => {
     setIsClearingCart(true);
     setShowClearConfirm(false);
-    
-    // Animate items sliding out
     setTimeout(() => {
       setCart([]);
       setIsClearingCart(false);
       setToast({ type: 'info', message: '🗑️ Cart cleared' });
     }, 400);
   };
+  const cancelClearCart = () => setShowClearConfirm(false);
 
-  const cancelClearCart = () => {
-    setShowClearConfirm(false);
-  };
-
-  // ====== NEW: Quick View Functions ======
   const openQuickView = (product) => {
     setSelectedProduct(product);
     setShowQuickView(true);
@@ -169,7 +278,65 @@ function App() {
     document.body.style.overflow = 'unset';
   };
 
-  // Validate payment details
+  // ====== NEW: Review Functions ======
+  const addReview = (productId, rating, comment, name) => {
+    const newReview = {
+      id: Date.now(),
+      productId,
+      rating,
+      comment,
+      name: name || 'Anonymous',
+      date: new Date().toLocaleDateString(),
+      verified: true
+    };
+
+    setReviews(prev => {
+      const productReviews = prev[productId] || [];
+      return {
+        ...prev,
+        [productId]: [newReview, ...productReviews]
+      };
+    });
+
+    setToast({ type: 'success', message: '⭐ Review added! Thanks for your feedback.' });
+  };
+
+  const getProductReviews = (productId) => {
+    return reviews[productId] || [];
+  };
+
+  const getAverageRating = (productId) => {
+    const productReviews = getProductReviews(productId);
+    if (productReviews.length === 0) return 0;
+    const sum = productReviews.reduce((acc, r) => acc + r.rating, 0);
+    return sum / productReviews.length;
+  };
+
+  const getRatingDistribution = (productId) => {
+    const productReviews = getProductReviews(productId);
+    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    productReviews.forEach(r => {
+      distribution[r.rating] = (distribution[r.rating] || 0) + 1;
+    });
+    return distribution;
+  };
+
+  // ====== NEW: Order History Functions ======
+  const getOrderHistory = () => {
+    return [...orders].reverse();
+  };
+
+  const reorder = (order) => {
+    order.items.forEach(item => {
+      const product = products.find(p => p.id === item.id);
+      if (product) {
+        addToCart(product);
+      }
+    });
+    setToast({ type: 'success', message: `🔄 Reordered ${order.items.length} items!` });
+  };
+
+  // ====== VALIDATION ======
   const validatePaymentDetails = () => {
     if (paymentMethod === 'card') {
       const cleanCard = paymentDetails.cardNumber.replace(/\s/g, '');
@@ -296,7 +463,42 @@ function App() {
     e.target.reset();
   };
 
-  // Get related products (same category, exclude current)
+  // ====== RENDER STARS ======
+  const renderStars = (rating, interactive = false, onRating = null) => {
+    return (
+      <div style={{ display: 'flex', gap: '4px' }}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <button
+            key={star}
+            onClick={() => interactive && onRating && onRating(star)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: interactive ? 'pointer' : 'default',
+              fontSize: interactive ? '28px' : '20px',
+              color: star <= rating ? '#fdcb6e' : 'var(--border)',
+              transition: '0.2s',
+              transform: interactive && star <= rating ? 'scale(1.1)' : 'scale(1)'
+            }}
+            onMouseEnter={(e) => {
+              if (interactive) {
+                e.currentTarget.style.transform = 'scale(1.2)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (interactive) {
+                e.currentTarget.style.transform = 'scale(1)';
+              }
+            }}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // ====== GET RELATED PRODUCTS ======
   const getRelatedProducts = (product) => {
     return products
       .filter(p => p.category === product.category && p.id !== product.id)
@@ -310,8 +512,24 @@ function App() {
       background: 'var(--bg-primary)',
       color: 'var(--text-primary)',
       transition: 'background 0.4s ease, color 0.4s ease',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden'
     }}>
+      {/* ====== BACKGROUND PARTICLES ====== */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 0,
+          opacity: 0.6
+        }}
+      />
+
       {/* ====== TOAST ====== */}
       {toast && (
         <div style={{
@@ -334,6 +552,343 @@ function App() {
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
           {toast.message}
+        </div>
+      )}
+
+      {/* ====== NAVBAR ====== */}
+      <nav style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '14px 24px',
+        background: 'var(--bg-glass)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--glass-border)',
+        zIndex: 100,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '100%',
+        borderRadius: '0 0 20px 20px',
+        transition: 'background 0.4s ease'
+      }}>
+        <span 
+          onClick={() => scrollToSection('home')}
+          style={{
+            fontSize: '22px',
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            cursor: 'pointer',
+            letterSpacing: '-0.5px'
+          }}
+        >
+          ✦ Wizen's
+        </span>
+
+        <div style={{
+          display: 'flex',
+          gap: '16px',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'home', label: 'Home' },
+            { id: 'products', label: 'Products' },
+            { id: 'reviews', label: '⭐ Reviews' },
+            { id: 'orders', label: '📦 Orders' },
+            { id: 'contact', label: 'Contact' },
+            { id: 'about', label: 'About' }
+          ].map(item => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => item.id === 'orders' ? setShowOrderHistory(true) : scrollToSection(item.id)}
+                style={{
+                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: isActive ? '600' : '500',
+                  cursor: 'pointer',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  transition: '0.3s',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                  e.currentTarget.style.background = 'var(--bg-card)';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    e.currentTarget.style.background = 'transparent';
+                  }
+                }}
+              >
+                {item.id === 'orders' ? '📦 Orders' : item.label}
+                {/* Active Indicator */}
+                {isActive && (
+                  <span style={{
+                    position: 'absolute',
+                    bottom: '-4px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '20px',
+                    height: '3px',
+                    borderRadius: '2px',
+                    background: 'linear-gradient(90deg, var(--accent), var(--accent-secondary))',
+                    animation: 'pulse 2s ease-in-out infinite'
+                  }} />
+                )}
+              </button>
+            );
+          })}
+          
+          <button
+            onClick={() => scrollToSection('cart-section')}
+            style={{
+              position: 'relative',
+              padding: '8px 16px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '50px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: 'var(--text-primary)',
+              transition: '0.3s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            <span style={{ fontSize: '18px' }}>🛒</span>
+            {getTotalItems() > 0 && (
+              <span style={{
+                background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+                color: 'white',
+                borderRadius: '50%',
+                padding: '2px 10px',
+                fontSize: '12px',
+                fontWeight: '700'
+              }}>
+                {getTotalItems()}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setIsDark(!isDark)}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '50px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              color: 'var(--text-primary)',
+              fontSize: '16px',
+              cursor: 'pointer',
+              transition: '0.3s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
+          >
+            {isDark ? '☀️' : '🌙'}
+          </button>
+        </div>
+      </nav>
+
+      {/* ====== ORDER HISTORY MODAL ====== */}
+      {showOrderHistory && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 9998,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          animation: 'fadeIn 0.3s ease'
+        }} onClick={() => setShowOrderHistory(false)}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '32px',
+            padding: '40px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowOrderHistory(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                fontSize: '18px',
+                cursor: 'pointer',
+                transition: '0.3s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'rotate(90deg)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'rotate(0)'; }}
+            >
+              ✕
+            </button>
+
+            <h2 style={{
+              fontSize: '32px',
+              fontWeight: '800',
+              marginBottom: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}>
+              📦 Order History
+              <span style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                fontWeight: '400'
+              }}>
+                ({orders.length} orders)
+              </span>
+            </h2>
+
+            {orders.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '60px 20px',
+                color: 'var(--text-secondary)'
+              }}>
+                <span style={{ fontSize: '64px', display: 'block', marginBottom: '16px' }}>📭</span>
+                <h3 style={{ color: 'var(--text-primary)' }}>No orders yet</h3>
+                <p>Start shopping to see your orders here!</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {getOrderHistory().map(order => (
+                  <div key={order.id} style={{
+                    padding: '20px',
+                    background: 'var(--bg-primary)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border)',
+                    transition: '0.3s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      marginBottom: '12px'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: '600', fontSize: '16px' }}>
+                          #{order.trackingNumber}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          {order.date} · {order.items.length} items
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{
+                          padding: '4px 14px',
+                          borderRadius: '50px',
+                          background: 
+                            order.status === 'Delivered' ? '#00b894' :
+                            order.status === 'In Transit' ? '#fdcb6e' :
+                            order.status === 'Shipped' ? '#74b9ff' : 'var(--accent)',
+                          color: 'white',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {order.status}
+                        </span>
+                        <span style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: 'var(--accent)'
+                        }}>
+                          ${order.total.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--border)'
+                    }}>
+                      {order.items.slice(0, 4).map(item => (
+                        <span key={item.id} style={{
+                          fontSize: '13px',
+                          color: 'var(--text-secondary)',
+                          background: 'var(--bg-card)',
+                          padding: '4px 12px',
+                          borderRadius: '50px',
+                          border: '1px solid var(--border)'
+                        }}>
+                          {item.emoji} {item.name} × {item.quantity}
+                        </span>
+                      ))}
+                      {order.items.length > 4 && (
+                        <span style={{
+                          fontSize: '13px',
+                          color: 'var(--text-muted)'
+                        }}>
+                          +{order.items.length - 4} more
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => reorder(order)}
+                      style={{
+                        marginTop: '12px',
+                        padding: '8px 20px',
+                        background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: '0.3s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                    >
+                      🔄 Reorder
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -365,7 +920,6 @@ function App() {
             position: 'relative'
           }} onClick={(e) => e.stopPropagation()}>
             
-            {/* Close Button */}
             <button
               onClick={closeQuickView}
               style={{
@@ -395,14 +949,12 @@ function App() {
               ✕
             </button>
 
-            {/* Content */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
               gap: '32px',
               alignItems: 'start'
             }}>
-              {/* Left - Image */}
               <div>
                 <div style={{
                   height: '400px',
@@ -418,22 +970,41 @@ function App() {
                   {selectedProduct.emoji}
                 </div>
                 
-                {/* Category Badge */}
-                <span style={{
-                  display: 'inline-block',
-                  padding: '4px 16px',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '50px',
-                  fontSize: '12px',
-                  color: 'var(--text-secondary)',
-                  textTransform: 'capitalize'
-                }}>
-                  {selectedProduct.category}
-                </span>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '4px 16px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    textTransform: 'capitalize'
+                  }}>
+                    {selectedProduct.category}
+                  </span>
+                  
+                  {/* Rating Display */}
+                  <span style={{
+                    display: 'inline-block',
+                    padding: '4px 16px',
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '50px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}>
+                    {renderStars(Math.round(getAverageRating(selectedProduct.id)))}
+                    <span style={{ marginLeft: '4px' }}>
+                      ({getProductReviews(selectedProduct.id).length})
+                    </span>
+                  </span>
+                </div>
               </div>
 
-              {/* Right - Details */}
               <div>
                 <h2 style={{
                   fontSize: '28px',
@@ -462,7 +1033,6 @@ function App() {
                   {selectedProduct.description}
                 </p>
 
-                {/* Features */}
                 <div style={{
                   marginBottom: '24px',
                   padding: '16px',
@@ -496,7 +1066,6 @@ function App() {
                   </ul>
                 </div>
 
-                {/* Add to Cart Button */}
                 <button
                   onClick={() => {
                     addToCart(selectedProduct);
@@ -521,7 +1090,6 @@ function App() {
                   Add to Cart →
                 </button>
 
-                {/* Related Products */}
                 {getRelatedProducts(selectedProduct).length > 0 && (
                   <div style={{ marginTop: '24px' }}>
                     <h4 style={{
@@ -955,7 +1523,8 @@ function App() {
                   onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                  📌 You will be redirected to PayPal to complete payment                </p>
+                  📌 You will be redirected to PayPal to complete payment
+                </p>
               </div>
             )}
 
@@ -1249,137 +1818,8 @@ function App() {
         </div>
       )}
 
-      {/* ====== NAVBAR ====== */}
-      <nav style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        padding: '14px 24px',
-        background: 'var(--bg-glass)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--glass-border)',
-        zIndex: 100,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        maxWidth: '1200px',
-        margin: '0 auto',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '100%',
-        borderRadius: '0 0 20px 20px',
-        transition: 'background 0.4s ease'
-      }}>
-        <span 
-          onClick={() => scrollToSection('home')}
-          style={{
-            fontSize: '22px',
-            fontWeight: '800',
-            background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            cursor: 'pointer',
-            letterSpacing: '-0.5px'
-          }}
-        >
-          ✦ Wizen's
-        </span>
-
-        <div style={{
-          display: 'flex',
-          gap: '16px',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          {['Home', 'Products', 'Track', 'Contact', 'About'].map(item => {
-            const id = item.toLowerCase();
-            return (
-              <button
-                key={item}
-                onClick={() => id === 'track' ? setShowTrackModal(true) : scrollToSection(id)}
-                style={{
-                  color: 'var(--text-secondary)',
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  transition: '0.3s',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'var(--bg-card)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'var(--text-secondary)';
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                {item === 'Track' ? '🔍 Track' : item}
-              </button>
-            );
-          })}
-          
-          <button
-            onClick={() => scrollToSection('cart-section')}
-            style={{
-              position: 'relative',
-              padding: '8px 16px',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: '50px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: 'var(--text-primary)',
-              transition: '0.3s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <span style={{ fontSize: '18px' }}>🛒</span>
-            {getTotalItems() > 0 && (
-              <span style={{
-                background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
-                color: 'white',
-                borderRadius: '50%',
-                padding: '2px 10px',
-                fontSize: '12px',
-                fontWeight: '700'
-              }}>
-                {getTotalItems()}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setIsDark(!isDark)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '50px',
-              background: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontSize: '16px',
-              cursor: 'pointer',
-              transition: '0.3s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            {isDark ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </nav>
-
       {/* ====== CONTENT ====== */}
-      <div style={{ paddingTop: '80px' }}>
+      <div style={{ paddingTop: '80px', position: 'relative', zIndex: 1 }}>
         
         {/* ====== HERO ====== */}
         <section id="home" style={{
@@ -1572,6 +2012,9 @@ function App() {
           }}>
             {filteredProducts.map((product, index) => {
               const inCart = cart.find(item => item.id === product.id);
+              const avgRating = getAverageRating(product.id);
+              const reviewCount = getProductReviews(product.id).length;
+              
               return (
                 <div key={product.id} style={{
                   background: 'var(--bg-card)',
@@ -1610,6 +2053,23 @@ function App() {
                   <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '4px' }}>
                     {product.name}
                   </h3>
+                  
+                  {/* Rating Display */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px'
+                  }}>
+                    {renderStars(Math.round(avgRating))}
+                    <span style={{
+                      fontSize: '13px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      ({reviewCount})
+                    </span>
+                  </div>
+                  
                   <p style={{
                     color: 'var(--text-secondary)',
                     fontSize: '14px',
@@ -1715,6 +2175,200 @@ function App() {
                   Clear Search
                 </button>
               )}
+            </div>
+          )}
+        </section>
+
+        {/* ====== REVIEWS & RATINGS SECTION ====== */}
+        <section id="reviews" style={{
+          padding: '80px 24px',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <span style={{
+              display: 'inline-block',
+              padding: '6px 20px',
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+              color: 'white',
+              borderRadius: '50px',
+              fontSize: '12px',
+              fontWeight: '600',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              marginBottom: '16px'
+            }}>
+              ⭐ Community Reviews
+            </span>
+            <h2 style={{
+              fontSize: 'clamp(32px, 4vw, 44px)',
+              fontWeight: '800',
+              letterSpacing: '-1px'
+            }}>
+              What our <span className="text-gradient">community</span> says
+            </h2>
+            <p style={{
+              fontSize: '18px',
+              color: 'var(--text-secondary)',
+              maxWidth: '600px',
+              margin: '12px auto 0'
+            }}>
+              Real reviews from real creators who use our products
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '24px'
+          }}>
+            {/* Show all reviews from all products */}
+            {Object.values(reviews).flat().slice(0, 6).map(review => {
+              const product = products.find(p => p.id === review.productId);
+              return (
+                <div key={review.id} style={{
+                  background: 'var(--bg-card)',
+                  borderRadius: '20px',
+                  padding: '24px',
+                  border: '1px solid var(--glass-border)',
+                  transition: '0.3s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'var(--glass-border)';
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      color: 'white',
+                      fontWeight: '700'
+                    }}>
+                      {review.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '600' }}>{review.name}</div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                        {review.date}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginBottom: '8px' }}>
+                    {renderStars(review.rating)}
+                  </div>
+                  
+                  <p style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '14px',
+                    lineHeight: '1.7'
+                  }}>
+                    {review.comment}
+                  </p>
+                  
+                  {product && (
+                    <div style={{
+                      marginTop: '12px',
+                      paddingTop: '12px',
+                      borderTop: '1px solid var(--border)',
+                      fontSize: '13px',
+                      color: 'var(--text-muted)'
+                    }}>
+                      Reviewed on: {product.emoji} {product.name}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {Object.values(reviews).flat().length === 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              color: 'var(--text-secondary)'
+            }}>
+              <span style={{ fontSize: '64px', display: 'block', marginBottom: '16px' }}>💬</span>
+              <h3 style={{ color: 'var(--text-primary)' }}>No reviews yet</h3>
+              <p>Be the first to review a product!</p>
+            </div>
+          )}
+        </section>
+
+        {/* ====== ORDER HISTORY BUTTON SECTION ====== */}
+        <section id="orders" style={{
+          padding: '60px 24px 80px',
+          maxWidth: '1200px',
+          margin: '0 auto',
+          textAlign: 'center'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            padding: '6px 20px',
+            background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+            color: 'white',
+            borderRadius: '50px',
+            fontSize: '12px',
+            fontWeight: '600',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            marginBottom: '16px'
+          }}>
+            📦 Your Orders
+          </span>
+          <h2 style={{
+            fontSize: 'clamp(32px, 4vw, 44px)',
+            fontWeight: '800',
+            marginBottom: '16px',
+            letterSpacing: '-1px'
+          }}>
+            Track your <span className="text-gradient">purchase history</span>
+          </h2>
+          <p style={{
+            fontSize: '18px',
+            color: 'var(--text-secondary)',
+            maxWidth: '600px',
+            margin: '0 auto 32px'
+          }}>
+            View all your past orders, track status, and reorder with one click.
+          </p>
+          <button
+            onClick={() => setShowOrderHistory(true)}
+            style={{
+              padding: '16px 48px',
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: '0.3s',
+              boxShadow: '0 8px 32px rgba(108, 92, 231, 0.3)'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            View Order History →
+          </button>
+          
+          {orders.length > 0 && (
+            <div style={{
+              marginTop: '24px',
+              fontSize: '14px',
+              color: 'var(--text-secondary)'
+            }}>
+              You have {orders.length} order{orders.length !== 1 ? 's' : ''} total
             </div>
           )}
         </section>
@@ -2197,7 +2851,7 @@ function App() {
           background: 'var(--bg-card)',
           backdropFilter: 'blur(10px)'
         }}>
-          <div style={{ marginBottom: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '24px', flexWrap: 'wrap', marginBottom: '12px' }}>
             <button
               onClick={() => setShowTrackModal(true)}
               style={{
@@ -2212,7 +2866,23 @@ function App() {
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-secondary)'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent)'}
             >
-              🔍 Track Your Order
+              🔍 Track Order
+            </button>
+            <button
+              onClick={() => setShowOrderHistory(true)}
+              style={{
+                color: 'var(--accent)',
+                background: 'none',
+                border: 'none',
+                fontSize: '14px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                transition: '0.3s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent-secondary)'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent)'}
+            >
+              📦 Order History
             </button>
           </div>
           <div style={{ opacity: '0.6' }}>
@@ -2258,6 +2928,17 @@ function App() {
           to {
             opacity: 0;
             transform: translateX(100px);
+          }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: translateX(-50%) scaleX(1);
+            opacity: 1;
+          }
+          50% {
+            transform: translateX(-50%) scaleX(0.5);
+            opacity: 0.5;
           }
         }
 
