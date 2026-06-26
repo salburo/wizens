@@ -54,6 +54,14 @@ function App() {
   // ====== NEW: Particle Animation ======
   const canvasRef = useRef(null);
 
+  // ====== NEW: Mobile Menu State ======
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // ====== NEW: Toggle Mobile Menu ======
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   // ====== EFFECTS ======
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -576,7 +584,8 @@ function App() {
         transform: 'translateX(-50%)',
         width: '100%',
         borderRadius: '0 0 20px 20px',
-        transition: 'background 0.4s ease'
+        transition: 'background 0.4s ease',
+        flexWrap: 'wrap'
       }}>
         <span 
           onClick={() => scrollToSection('home')}
@@ -599,61 +608,87 @@ function App() {
           alignItems: 'center',
           flexWrap: 'wrap'
         }}>
-          {[
-            { id: 'home', label: 'Home' },
-            { id: 'products', label: 'Products' },
-            { id: 'reviews', label: '⭐ Reviews' },
-            { id: 'orders', label: '📦 Orders' },
-            { id: 'contact', label: 'Contact' },
-            { id: 'about', label: 'About' }
-          ].map(item => {
-            const isActive = activeSection === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => item.id === 'orders' ? setShowOrderHistory(true) : scrollToSection(item.id)}
-                style={{
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: isActive ? '600' : '500',
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  transition: '0.3s',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'var(--text-primary)';
-                  e.currentTarget.style.background = 'var(--bg-card)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                    e.currentTarget.style.background = 'transparent';
-                  }
-                }}
-              >
-                {item.id === 'orders' ? '📦 Orders' : item.label}
-                {/* Active Indicator */}
-                {isActive && (
-                  <span style={{
-                    position: 'absolute',
-                    bottom: '-4px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '20px',
-                    height: '3px',
-                    borderRadius: '2px',
-                    background: 'linear-gradient(90deg, var(--accent), var(--accent-secondary))',
-                    animation: 'pulse 2s ease-in-out infinite'
-                  }} />
-                )}
-              </button>
-            );
-          })}
-          
+          {/* ====== DESKTOP NAVIGATION ====== */}
+          <div className="desktop-nav" style={{
+            display: 'flex',
+            gap: '16px',
+            alignItems: 'center'
+          }}>
+            {[
+              { id: 'home', label: 'Home' },
+              { id: 'products', label: 'Products' },
+              { id: 'reviews', label: '⭐ Reviews' },
+              { id: 'orders', label: '📦 Orders' },
+              { id: 'contact', label: 'Contact' },
+              { id: 'about', label: 'About' }
+            ].map(item => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => item.id === 'orders' ? setShowOrderHistory(true) : scrollToSection(item.id)}
+                  style={{
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: isActive ? '600' : '500',
+                    cursor: 'pointer',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    transition: '0.3s',
+                    position: 'relative',
+                    display: 'inline-block'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                    e.currentTarget.style.background = 'var(--bg-card)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = 'var(--text-secondary)';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  {item.id === 'orders' ? '📦 Orders' : item.label}
+                  {isActive && (
+                    <span style={{
+                      position: 'absolute',
+                      bottom: '-4px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '20px',
+                      height: '3px',
+                      borderRadius: '2px',
+                      background: 'linear-gradient(90deg, var(--accent), var(--accent-secondary))',
+                      animation: 'pulse 2s ease-in-out infinite'
+                    }} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* ====== MOBILE MENU BUTTON ====== */}
+          <button
+            onClick={toggleMobileMenu}
+            className="mobile-menu-btn"
+            style={{
+              display: 'none',
+              padding: '8px 12px',
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '20px',
+              color: 'var(--text-primary)'
+            }}
+          >
+            ☰
+          </button>
+
+          {/* ====== CART BUTTON ====== */}
           <button
             onClick={() => scrollToSection('cart-section')}
             style={{
@@ -687,6 +722,7 @@ function App() {
             )}
           </button>
 
+          {/* ====== THEME TOGGLE ====== */}
           <button
             onClick={() => setIsDark(!isDark)}
             style={{
@@ -707,8 +743,65 @@ function App() {
         </div>
       </nav>
 
+      {/* ====== MOBILE MENU DROPDOWN ====== */}
+      {isMobileMenuOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '70px',
+          left: 0,
+          right: 0,
+          background: 'var(--bg-secondary)',
+          padding: '20px',
+          borderBottom: '1px solid var(--border)',
+          zIndex: 99,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          boxShadow: 'var(--shadow-lg)'
+        }}>
+          {[
+            { id: 'home', label: 'Home' },
+            { id: 'products', label: 'Products' },
+            { id: 'reviews', label: '⭐ Reviews' },
+            { id: 'orders', label: '📦 Orders' },
+            { id: 'contact', label: 'Contact' },
+            { id: 'about', label: 'About' }
+          ].map(item => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.id === 'orders') {
+                    setShowOrderHistory(true);
+                  } else {
+                    scrollToSection(item.id);
+                  }
+                  setIsMobileMenuOpen(false);
+                }}
+                style={{
+                  padding: '12px 16px',
+                  background: isActive ? 'var(--accent)' : 'transparent',
+                  color: isActive ? 'white' : 'var(--text-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: isActive ? '600' : '500',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: '0.3s'
+                }}
+              >
+                {item.id === 'orders' ? '📦 Orders' : item.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ====== ORDER HISTORY MODAL ====== */}
       {showOrderHistory && (
+        // ... (order history modal content - keep as is)
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -894,6 +987,7 @@ function App() {
 
       {/* ====== QUICK VIEW MODAL ====== */}
       {showQuickView && selectedProduct && (
+        // ... (quick view modal - keep as is)
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -984,7 +1078,6 @@ function App() {
                     {selectedProduct.category}
                   </span>
                   
-                  {/* Rating Display */}
                   <span style={{
                     display: 'inline-block',
                     padding: '4px 16px',
@@ -1158,6 +1251,7 @@ function App() {
 
       {/* ====== CLEAR CART CONFIRMATION ====== */}
       {showClearConfirm && (
+        // ... (clear cart modal - keep as is)
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1242,6 +1336,7 @@ function App() {
 
       {/* ====== CHECKOUT MODAL ====== */}
       {showCheckoutModal && (
+        // ... (checkout modal - keep as is)
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -1587,6 +1682,7 @@ function App() {
 
       {/* ====== TRACK ORDER MODAL ====== */}
       {showTrackModal && (
+        // ... (track order modal - keep as is)
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -2222,7 +2318,6 @@ function App() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '24px'
           }}>
-            {/* Show all reviews from all products */}
             {Object.values(reviews).flat().slice(0, 6).map(review => {
               const product = products.find(p => p.id === review.productId);
               return (
@@ -2947,6 +3042,23 @@ function App() {
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+          .desktop-nav {
+            display: none !important;
+          }
+          
+          .mobile-menu-btn {
+            display: flex !important;
+          }
+        }
+
+        @media (min-width: 769px) {
+          .mobile-menu-btn {
+            display: none !important;
+          }
         }
       `}</style>
     </div>

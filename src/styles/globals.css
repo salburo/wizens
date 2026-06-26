@@ -137,3 +137,413 @@ button {
     padding: 0 16px;
   }
 }
+
+/* ====== MOBILE RESPONSIVENESS ====== */
+
+/* Small devices (phones, 480px and down) */
+@media (max-width: 480px) {
+  /* General */
+  body {
+    font-size: 14px;
+  }
+  
+  /* Navbar */
+  nav {
+    padding: 10px 12px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 4px !important;
+  }
+  
+  nav > div:last-child {
+    gap: 4px !important;
+  }
+  
+  nav button {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Logo */
+  nav span {
+    font-size: 16px !important;
+    min-width: 70px;
+  }
+  
+  /* Hero */
+  #home h1 {
+    font-size: 32px !important;
+  }
+  
+  #home p {
+    font-size: 14px !important;
+  }
+  
+  #home button {
+    padding: 12px 24px !important;
+    font-size: 14px !important;
+    width: 100% !important;
+  }
+  
+  /* Products Grid */
+  #products > div:last-child {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .product-card {
+    padding: 12px !important;
+  }
+  
+  .product-card h3 {
+    font-size: 14px !important;
+  }
+  
+  .product-card p {
+    font-size: 12px !important;
+  }
+  
+  .product-card .price {
+    font-size: 16px !important;
+  }
+  
+  .product-card button {
+    padding: 4px 12px !important;
+    font-size: 11px !important;
+  }
+  
+  /* Search & Filters */
+  #products > div:first-child {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  #products > div:first-child > div:last-child {
+    flex-direction: column !important;
+    width: 100% !important;
+  }
+  
+  .search-bar {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  .filter-buttons {
+    display: flex !important;
+    gap: 4px !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+  }
+  
+  .filter-buttons button {
+    font-size: 11px !important;
+    padding: 4px 12px !important;
+  }
+  
+  /* Quick View Modal */
+  .quick-view-modal {
+    padding: 16px !important;
+    max-width: 100% !important;
+    margin: 8px !important;
+    border-radius: 16px !important;
+  }
+  
+  .quick-view-modal > div {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+  
+  .quick-view-modal .image-section {
+    height: 200px !important;
+    font-size: 60px !important;
+  }
+  
+  .quick-view-modal h2 {
+    font-size: 20px !important;
+  }
+  
+  .quick-view-modal .price {
+    font-size: 24px !important;
+  }
+  
+  .quick-view-modal .related-products {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  
+  /* Cart */
+  #cart-section > div {
+    padding: 12px !important;
+  }
+  
+  .cart-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 12px !important;
+  }
+  
+  .cart-item > div:first-child {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  
+  .cart-item > div:last-child {
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+  }
+  
+  .cart-item .quantity-controls {
+    gap: 4px !important;
+  }
+  
+  .cart-item .quantity-controls button {
+    padding: 2px 8px !important;
+    font-size: 14px !important;
+  }
+  
+  .cart-summary {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  
+  .cart-summary > div:last-child {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .cart-summary button {
+    width: 100% !important;
+  }
+  
+  /* Checkout Modal */
+  .checkout-modal {
+    padding: 16px !important;
+    max-width: 100% !important;
+    margin: 8px !important;
+    border-radius: 16px !important;
+  }
+  
+  .checkout-modal .payment-methods {
+    flex-direction: column !important;
+  }
+  
+  .checkout-modal .payment-methods button {
+    width: 100% !important;
+  }
+  
+  .checkout-modal .card-details {
+    flex-direction: column !important;
+  }
+  
+  .checkout-modal .card-details > div {
+    flex-direction: column !important;
+  }
+  
+  .checkout-modal .action-buttons {
+    flex-direction: column !important;
+  }
+  
+  .checkout-modal .action-buttons button {
+    width: 100% !important;
+  }
+  
+  /* Reviews */
+  #reviews > div:last-child {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .review-card {
+    padding: 16px !important;
+  }
+  
+  /* Order History */
+  .order-history-modal {
+    padding: 16px !important;
+    max-width: 100% !important;
+    margin: 8px !important;
+    border-radius: 16px !important;
+  }
+  
+  .order-item {
+    padding: 12px !important;
+  }
+  
+  .order-item > div:first-child {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  .order-item .order-items {
+    flex-wrap: wrap !important;
+  }
+  
+  .order-item .order-items span {
+    font-size: 11px !important;
+  }
+  
+  /* Track Modal */
+  .track-modal {
+    padding: 16px !important;
+    max-width: 100% !important;
+    margin: 8px !important;
+    border-radius: 16px !important;
+  }
+  
+  .track-modal > div:first-child {
+    flex-direction: column !important;
+  }
+  
+  .track-modal > div:first-child button {
+    width: 100% !important;
+  }
+  
+  /* Footer */
+  footer {
+    padding: 20px 12px !important;
+  }
+  
+  footer > div:first-child {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  /* Toast */
+  .toast {
+    right: 12px !important;
+    left: 12px !important;
+    max-width: 100% !important;
+    font-size: 13px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Clear Cart Modal */
+  .clear-cart-modal {
+    padding: 16px !important;
+    margin: 8px !important;
+    border-radius: 16px !important;
+  }
+  
+  .clear-cart-modal > div:last-child {
+    flex-direction: column !important;
+  }
+  
+  .clear-cart-modal > div:last-child button {
+    width: 100% !important;
+  }
+}
+
+/* Medium devices (tablets, 768px and down) */
+@media (max-width: 768px) {
+  /* Product grid */
+  #products > div:last-child {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+  }
+  
+  /* Quick View */
+  .quick-view-modal > div {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .quick-view-modal .image-section {
+    height: 250px !important;
+  }
+  
+  /* Navbar - hide some text */
+  nav button {
+    font-size: 12px !important;
+  }
+  
+  /* Hero text */
+  #home h1 {
+    font-size: 40px !important;
+  }
+}
+
+/* Large devices (desktops, 1024px and up) */
+@media (min-width: 1024px) {
+  #products > div:last-child {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Extra large devices */
+@media (min-width: 1440px) {
+  #products > div:last-child {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* ====== TOUCH-FRIENDLY ====== */
+@media (hover: none) {
+  /* Disable hover effects on touch devices */
+  .product-card:hover {
+    transform: none !important;
+  }
+  
+  button:hover {
+    transform: none !important;
+  }
+  
+  /* Make buttons bigger for touch */
+  button {
+    min-height: 44px !important;
+  }
+  
+  .product-card button {
+    min-height: 36px !important;
+  }
+}
+
+
+
+/* ====== MOBILE MENU ====== */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none !important;
+  }
+  
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+  
+  nav {
+    flex-wrap: wrap !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-menu-btn {
+    display: none !important;
+  }
+}
+
+/* ====== TOUCH TARGETS ====== */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
+
+input, select, textarea {
+  font-size: 16px !important; /* Prevents zoom on iOS */
+}
+
+/* ====== SCROLLBAR (Mobile) ====== */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
+/* ====== SAFE AREA PADDING (Notch phones) ====== */
+@supports (padding: max(0px)) {
+  .safe-area {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+}
