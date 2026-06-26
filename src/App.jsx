@@ -3,7 +3,7 @@ import { products } from './data/products';
 import './styles/globals.css';
 
 function App() {
-  // All your existing state remains the same
+  // All existing state remains...
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -35,7 +35,15 @@ function App() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [trackedOrder, setTrackedOrder] = useState(null);
 
-  // All your existing functions remain the same
+  // ====== NEW: Quick View Modal State ======
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [showQuickView, setShowQuickView] = useState(false);
+
+  // ====== NEW: Clear Cart Transition State ======
+  const [isClearingCart, setIsClearingCart] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
+  // All your existing useEffect hooks...
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
@@ -56,6 +64,7 @@ function App() {
     }
   }, [toast]);
 
+  // Filter and search products
   const filteredProducts = useMemo(() => {
     let result = filter === 'all' 
       ? products 
@@ -86,6 +95,7 @@ function App() {
     return result;
   };
 
+  // Cart functions
   const addToCart = (product) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -125,13 +135,41 @@ function App() {
     return total + (price * item.quantity);
   }, 0);
 
-  const clearCart = () => {
-    if (window.confirm('Clear your cart?')) {
-      setCart([]);
-      setToast({ type: 'info', message: '🗑️ Cart cleared' });
-    }
+  // ====== NEW: Clear Cart with Transition ======
+  const handleClearCart = () => {
+    setShowClearConfirm(true);
   };
 
+  const confirmClearCart = () => {
+    setIsClearingCart(true);
+    setShowClearConfirm(false);
+    
+    // Animate items sliding out
+    setTimeout(() => {
+      setCart([]);
+      setIsClearingCart(false);
+      setToast({ type: 'info', message: '🗑️ Cart cleared' });
+    }, 400);
+  };
+
+  const cancelClearCart = () => {
+    setShowClearConfirm(false);
+  };
+
+  // ====== NEW: Quick View Functions ======
+  const openQuickView = (product) => {
+    setSelectedProduct(product);
+    setShowQuickView(true);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeQuickView = () => {
+    setShowQuickView(false);
+    setSelectedProduct(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  // Validate payment details
   const validatePaymentDetails = () => {
     if (paymentMethod === 'card') {
       const cleanCard = paymentDetails.cardNumber.replace(/\s/g, '');
@@ -184,6 +222,7 @@ function App() {
     setShowCheckoutModal(false);
     setPaymentDetails({ cardNumber: '', cvv: '', expiry: '', cardName: '', gcashNumber: '', paypalEmail: '' });
     setToast({ type: 'success', message: `🎉 Order placed! Tracking: ${order.trackingNumber}` });
+    closeQuickView();
   };
 
   const trackOrder = () => {
@@ -257,7 +296,14 @@ function App() {
     e.target.reset();
   };
 
-  // ====== STYLED COMPONENT RENDER ======
+  // Get related products (same category, exclude current)
+  const getRelatedProducts = (product) => {
+    return products
+      .filter(p => p.category === product.category && p.id !== product.id)
+      .slice(0, 3);
+  };
+
+  // ====== RENDER ======
   return (
     <div style={{
       minHeight: '100vh',
@@ -288,6 +334,341 @@ function App() {
           border: '1px solid rgba(255,255,255,0.1)'
         }}>
           {toast.message}
+        </div>
+      )}
+
+      {/* ====== QUICK VIEW MODAL ====== */}
+      {showQuickView && selectedProduct && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.7)',
+          backdropFilter: 'blur(20px)',
+          zIndex: 9998,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          animation: 'fadeIn 0.3s ease'
+        }} onClick={closeQuickView}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '32px',
+            padding: '40px',
+            maxWidth: '900px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeInUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            position: 'relative'
+          }} onClick={(e) => e.stopPropagation()}>
+            
+            {/* Close Button */}
+            <button
+              onClick={closeQuickView}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-secondary)',
+                fontSize: '20px',
+                cursor: 'pointer',
+                transition: '0.3s',
+                zIndex: 10
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'rotate(90deg)';
+                e.currentTarget.style.borderColor = 'var(--accent)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'rotate(0)';
+                e.currentTarget.style.borderColor = 'var(--border)';
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Content */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '32px',
+              alignItems: 'start'
+            }}>
+              {/* Left - Image */}
+              <div>
+                <div style={{
+                  height: '400px',
+                  borderRadius: '20px',
+                  background: selectedProduct.gradient,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '120px',
+                  marginBottom: '16px',
+                  transition: '0.3s'
+                }}>
+                  {selectedProduct.emoji}
+                </div>
+                
+                {/* Category Badge */}
+                <span style={{
+                  display: 'inline-block',
+                  padding: '4px 16px',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '50px',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  textTransform: 'capitalize'
+                }}>
+                  {selectedProduct.category}
+                </span>
+              </div>
+
+              {/* Right - Details */}
+              <div>
+                <h2 style={{
+                  fontSize: '28px',
+                  fontWeight: '800',
+                  marginBottom: '8px',
+                  letterSpacing: '-0.5px'
+                }}>
+                  {selectedProduct.name}
+                </h2>
+                
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: 'var(--accent)',
+                  marginBottom: '16px'
+                }}>
+                  {selectedProduct.price}
+                </div>
+
+                <p style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '16px',
+                  lineHeight: '1.8',
+                  marginBottom: '24px'
+                }}>
+                  {selectedProduct.description}
+                </p>
+
+                {/* Features */}
+                <div style={{
+                  marginBottom: '24px',
+                  padding: '16px',
+                  background: 'var(--bg-primary)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border)'
+                }}>
+                  <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>
+                    What's included ✦
+                  </h4>
+                  <ul style={{
+                    listStyle: 'none',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px'
+                  }}>
+                    <li style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      ✓ Full access to {selectedProduct.name}
+                    </li>
+                    <li style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      ✓ Lifetime updates
+                    </li>
+                    <li style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      ✓ 24/7 support
+                    </li>
+                    <li style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      ✓ Commercial license
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Add to Cart Button */}
+                <button
+                  onClick={() => {
+                    addToCart(selectedProduct);
+                    closeQuickView();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    background: 'linear-gradient(135deg, var(--accent), var(--accent-secondary))',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '16px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: '0.3s',
+                    boxShadow: '0 4px 20px rgba(108, 92, 231, 0.3)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  Add to Cart →
+                </button>
+
+                {/* Related Products */}
+                {getRelatedProducts(selectedProduct).length > 0 && (
+                  <div style={{ marginTop: '24px' }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      marginBottom: '12px',
+                      color: 'var(--text-secondary)'
+                    }}>
+                      Related Products
+                    </h4>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '12px'
+                    }}>
+                      {getRelatedProducts(selectedProduct).map(related => (
+                        <div
+                          key={related.id}
+                          onClick={() => {
+                            setSelectedProduct(related);
+                          }}
+                          style={{
+                            padding: '12px',
+                            background: 'var(--bg-primary)',
+                            borderRadius: '12px',
+                            border: '1px solid var(--border)',
+                            cursor: 'pointer',
+                            textAlign: 'center',
+                            transition: '0.3s'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--accent)';
+                            e.currentTarget.style.transform = 'translateY(-4px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border)';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                          }}
+                        >
+                          <div style={{ fontSize: '32px' }}>{related.emoji}</div>
+                          <div style={{
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            marginTop: '4px',
+                            color: 'var(--text-primary)'
+                          }}>
+                            {related.name}
+                          </div>
+                          <div style={{
+                            fontSize: '12px',
+                            color: 'var(--accent)',
+                            fontWeight: '600'
+                          }}>
+                            {related.price}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== CLEAR CART CONFIRMATION ====== */}
+      {showClearConfirm && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 9997,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          animation: 'fadeIn 0.3s ease'
+        }} onClick={cancelClearCart}>
+          <div style={{
+            background: 'var(--bg-secondary)',
+            borderRadius: '24px',
+            padding: '32px',
+            maxWidth: '420px',
+            width: '100%',
+            border: '1px solid var(--glass-border)',
+            boxShadow: 'var(--shadow-xl)',
+            animation: 'fadeInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            textAlign: 'center'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>🗑️</div>
+            <h3 style={{
+              fontSize: '22px',
+              fontWeight: '700',
+              marginBottom: '8px'
+            }}>
+              Clear Your Cart?
+            </h3>
+            <p style={{
+              color: 'var(--text-secondary)',
+              fontSize: '15px',
+              marginBottom: '24px'
+            }}>
+              This will remove all {getTotalItems()} items from your cart. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={cancelClearCart}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  background: 'var(--bg-primary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: '0.3s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-primary)'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearCart}
+                style={{
+                  flex: 2,
+                  padding: '12px',
+                  background: 'linear-gradient(135deg, #ff6b6b, #e55555)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  transition: '0.3s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                Yes, Clear All
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -574,8 +955,7 @@ function App() {
                   onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border)'}
                 />
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                  📌 You will be redirected to PayPal to complete payment
-                </p>
+                  📌 You will be redirected to PayPal to complete payment                </p>
               </div>
             )}
 
@@ -1200,7 +1580,8 @@ function App() {
                   border: '1px solid var(--glass-border)',
                   transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
                   boxShadow: 'var(--shadow)',
-                  animation: `fadeInUp 0.6s ease ${index * 0.05}s both`
+                  animation: `fadeInUp 0.6s ease ${index * 0.05}s both`,
+                  cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-8px)';
@@ -1211,7 +1592,8 @@ function App() {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow = 'var(--shadow)';
                   e.currentTarget.style.borderColor = 'var(--glass-border)';
-                }}>
+                }}
+                onClick={() => openQuickView(product)}>
                   <div style={{
                     height: '150px',
                     borderRadius: '16px',
@@ -1251,7 +1633,10 @@ function App() {
                       {product.price}
                     </span>
                     <button
-                      onClick={() => addToCart(product)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product);
+                      }}
                       style={{
                         padding: '8px 20px',
                         borderRadius: '50px',
@@ -1268,14 +1653,26 @@ function App() {
                         boxShadow: inCart ? 'none' : '0 4px 16px rgba(108, 92, 231, 0.3)'
                       }}
                       onMouseEnter={(e) => {
+                        e.stopPropagation();
                         if (!inCart) e.currentTarget.style.transform = 'scale(1.05)';
                       }}
                       onMouseLeave={(e) => {
+                        e.stopPropagation();
                         if (!inCart) e.currentTarget.style.transform = 'scale(1)';
                       }}
                     >
                       {inCart ? `✓ ${inCart.quantity}` : 'Add to Cart'}
                     </button>
+                  </div>
+                  <div style={{
+                    marginTop: '12px',
+                    fontSize: '12px',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}>
+                    <span>👆 Click to view details</span>
                   </div>
                 </div>
               );
@@ -1365,7 +1762,15 @@ function App() {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                marginBottom: '24px',
+                transition: 'all 0.4s ease',
+                opacity: isClearingCart ? 0 : 1,
+                transform: isClearingCart ? 'translateX(100px)' : 'translateX(0)'
+              }}>
                 {cart.map(item => (
                   <div key={item.id} style={{
                     display: 'flex',
@@ -1377,7 +1782,8 @@ function App() {
                     border: '1px solid var(--border)',
                     flexWrap: 'wrap',
                     gap: '12px',
-                    transition: '0.3s'
+                    transition: '0.3s',
+                    animation: isClearingCart ? `fadeOutRight 0.4s ease ${cart.indexOf(item) * 0.05}s both` : 'none'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent)'}
                   onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border)'}>
@@ -1506,7 +1912,7 @@ function App() {
                   </div>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <button
-                      onClick={clearCart}
+                      onClick={handleClearCart}
                       style={{
                         padding: '12px 28px',
                         background: 'transparent',
@@ -1814,6 +2220,54 @@ function App() {
           </div>
         </footer>
       </div>
+
+      {/* ====== CSS ANIMATIONS ====== */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes fadeOutRight {
+          from {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(100px);
+          }
+        }
+
+        .text-gradient {
+          background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      `}</style>
     </div>
   );
 }
